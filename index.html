@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Basketball">
+<meta name="theme-color" content="#000000">
+<script>
+(function(){
+  const manifest={name:"Basketball Scoreboard",short_name:"Basketball",start_url:".",display:"standalone",background_color:"#000000",theme_color:"#000000",orientation:"any",icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>",sizes:"192x192",type:"image/svg+xml"},{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>",sizes:"512x512",type:"image/svg+xml"}]};
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+</script>
+<title>Basketball Controller</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Rajdhani',sans-serif}
+html{height:-webkit-fill-available}
+body{min-height:-webkit-fill-available}
+.board{width:100vw;height:100vh;height:100dvh;background:#000;display:flex;flex-direction:column}
+@media screen and (orientation:landscape){
+  .board{width:100dvw;height:100dvh}
+  .dscore{font-size:clamp(38px,10vw,90px)!important}
+  .main-clk{font-size:clamp(22px,5vw,44px)!important}
+  .shot-top{font-size:clamp(16px,3.5vw,30px)!important}
+  .top-bar{padding:3px 10px}
+}
+.top-bar{display:flex;align-items:center;padding:6px 10px;gap:6px}
+.shot-top{font-family:'Orbitron',monospace;font-size:clamp(20px,5.5vw,40px);font-weight:900;font-variant-numeric:tabular-nums;color:#e8c000;letter-spacing:2px;min-width:88px;cursor:pointer;border:2px dashed #e8c00055;border-radius:8px;padding:2px 6px;transition:color .2s,border-color .2s,box-shadow .2s}
+.shot-top.run{color:#ff8800;border-color:#ff880055}
+.shot-top.danger{color:#ff2200;border-color:#ff220077;animation:bl .4s infinite}
+.shot-top.editable{box-shadow:0 0 0 2px #00aaff inset}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.top-center{flex:1;display:flex;align-items:center;justify-content:center;gap:10px}
+.play-btn{width:50px;height:50px;border-radius:50%;background:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;flex-shrink:0}
+.play-btn:active{transform:scale(.9)}
+.main-clk{font-family:'Orbitron',monospace;font-size:clamp(28px,7.5vw,54px);font-weight:900;font-variant-numeric:tabular-nums;color:#ff2200;letter-spacing:3px;line-height:1;transition:box-shadow .2s,border-radius .2s,padding .2s}
+.main-clk.editable{box-shadow:0 0 0 2px #00aaff inset;border-radius:10px;padding:4px 8px;cursor:pointer}
+.qtr-lbl{font-family:'Rajdhani',sans-serif;font-size:clamp(16px,4.5vw,28px);font-weight:700;color:#fff;min-width:34px;transition:box-shadow .2s,border-radius .2s,padding .2s}
+.qtr-lbl.editable{box-shadow:0 0 0 2px #00aaff inset;border-radius:10px;padding:3px 8px;cursor:pointer}
+.top-right{display:flex;gap:5px;align-items:center}
+.ico{width:44px;height:44px;border-radius:50%;background:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0}
+.ico:active{transform:scale(.9)}
+.bravo-ico{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ff6600,#ffcc00);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;flex-shrink:0;box-shadow:0 0 12px #ff660077;animation:pb 2s infinite}
+.bravo-ico:active{transform:scale(.88)}
+@keyframes pb{0%,100%{box-shadow:0 0 8px #ff660055}50%{box-shadow:0 0 20px #ff6600bb}}
+.cam-ico{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#0055cc,#00aaff);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;flex-shrink:0}
+.cam-ico:active{transform:scale(.88)}
+.clear-ico{width:44px;height:44px;border-radius:50%;background:#c0392b;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex-shrink:0;display:none}
+.clear-ico.visible{display:flex}
+.clear-ico:active{transform:scale(.88)}
+.edit-active{background:#00aaff!important;color:#fff!important;box-shadow:0 0 14px #00aaff88}
+.main-content{flex:1;display:flex;align-items:stretch;min-height:0;padding:0 4px;gap:4px}
+.lcol,.rcol{display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 0}
+.sbtngrp{display:flex;flex-direction:column;gap:8px}
+.sbtn{width:44px;height:44px;border-radius:50%;background:#fff;border:none;color:#000;font-size:15px;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sbtn:active{transform:scale(.9)}
+.shot-reset-row{display:flex;gap:5px}
+.sreset{width:40px;height:40px;border-radius:50%;background:#fff;border:none;color:#000;font-size:14px;font-weight:900;font-family:'Orbitron',monospace;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sreset:active{transform:scale(.9)}
+.center-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 0;min-width:0}
+.teams-row{display:flex;width:100%;justify-content:space-between;align-items:center;flex:1;gap:4px}
+.tblk{display:flex;flex-direction:column;align-items:center;flex:1}
+.tname{background:transparent;border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:clamp(16px,4.5vw,28px);font-weight:700;cursor:pointer;letter-spacing:2px;transition:box-shadow .2s,border-radius .2s,padding .2s}
+.tname:active{opacity:.7}
+.tname.editable{box-shadow:0 0 0 2px #00aaff inset;border-radius:10px;padding:4px 10px}
+.dscore{font-family:'Orbitron',monospace;font-size:clamp(55px,16vw,120px);font-weight:900;color:#ffee00;line-height:1;letter-spacing:-2px;border-radius:14px;transition:box-shadow .2s,padding .2s}
+.dscore.editable{box-shadow:0 0 0 3px #00aaff inset;padding:0 10px;cursor:pointer}
+.fouls-row{display:flex;width:100%;justify-content:space-between;align-items:center;padding:2px 0;gap:4px}
+.dotgrp{display:flex;gap:5px;background:transparent;border:2px solid #666;border-radius:20px;padding:5px 10px;cursor:pointer;align-items:center}
+.dotgrp:active{border-color:#aaa}
+.dot{width:11px;height:11px;border-radius:50%;background:#444;flex-shrink:0;transition:background .12s}
+.dot.on{background:#fff;box-shadow:0 0 5px #fff}
+.fouls-center{display:flex;flex-direction:column;align-items:center;gap:2px}
+.fouls-lbl-row{display:flex;align-items:center;gap:4px}
+.flbl{color:#cc0000;font-size:clamp(13px,3.5vw,18px);font-weight:700;letter-spacing:2px}
+.farrow{background:none;border:none;cursor:pointer;padding:4px 6px;display:flex;align-items:center;border-radius:8px;transition:background .15s}
+.farrow:active{transform:scale(.88)}
+.al{width:0;height:0;border-top:22px solid transparent;border-bottom:22px solid transparent;border-right:36px solid #550000;display:inline-block;transition:border-right-color .15s,filter .15s}
+.ar{width:0;height:0;border-top:22px solid transparent;border-bottom:22px solid transparent;border-left:36px solid #550000;display:inline-block;transition:border-left-color .15s,filter .15s}
+.farrow.active .al{border-right-color:#ff2200;filter:drop-shadow(0 0 8px #ff2200)}
+.farrow.active .ar{border-left-color:#ff2200;filter:drop-shadow(0 0 8px #ff2200)}
+.fnums{display:flex;justify-content:space-between;width:100%;padding:0 6px}
+.fnum{font-family:'Orbitron',monospace;font-size:clamp(12px,3vw,18px);font-weight:900;color:#cc0000;min-width:22px;text-align:center}
+.shot-row{display:flex;width:100%;justify-content:center;align-items:center;gap:20px;padding:2px 0 4px}
+.fplus{width:46px;height:46px;border-radius:50%;background:#cc0000;border:none;color:#fff;font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(204,0,0,.4)}
+.fplus:active{transform:scale(.88);background:#ff2200}
+.shot-digs{display:flex;align-items:center;gap:6px}
+.sd{font-family:'Orbitron',monospace;font-size:clamp(30px,8.5vw,60px);font-weight:900;line-height:1;cursor:pointer;border-radius:10px;padding:2px 8px;transition:background .12s,box-shadow .2s}
+.sd:active{background:rgba(255,255,255,.15)}
+.sd.t1{color:#ffee00}.sd.t2{color:#ff8800}
+.sd.editable{box-shadow:0 0 0 2px #00aaff inset;border-radius:8px;padding:0 6px;cursor:pointer}
+.ssep{color:#fff;font-size:clamp(18px,5vw,34px);font-weight:700}
+.rib{display:flex;flex-direction:column;gap:6px;align-items:center}
+.bbar{display:flex;justify-content:center;padding:4px 0 6px}
+/* ── Music Bar ── */
+.music-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 10px;background:#0a0a0a;border-top:1px solid #222;flex-wrap:wrap}
+.mtrack{display:flex;align-items:center;gap:6px;background:#1a1a1a;border:1px solid #333;border-radius:22px;padding:5px 14px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.mtrack:active{transform:scale(.93)}
+.mtrack.playing{background:#1a3a1a;border-color:#00cc44;box-shadow:0 0 10px rgba(0,200,60,.35)}
+.mtrack .mico{font-size:16px}
+.mtrack .mlbl{font-size:11px;font-weight:700;color:#ccc;letter-spacing:.04em}
+.mtrack.playing .mlbl{color:#00ff55}
+.mstop{background:#1a0a0a;border:1px solid #550000;border-radius:22px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:700;color:#cc3333;transition:all .18s;white-space:nowrap}
+.mstop:active{transform:scale(.93)}
+.div{width:55%;height:3px;background:#fff;border-radius:2px}
+.mover{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center}
+.mover.show{display:flex}
+.mbox{background:#1a1a1a;border:2px solid #fff;border-radius:16px;padding:22px;width:84%;max-width:320px;display:flex;flex-direction:column;gap:12px}
+.mbox h3{color:#fff;font-size:20px;text-align:center}
+.minput{background:#333;border:1px solid #666;border-radius:8px;color:#fff;font-size:18px;padding:10px;width:100%;text-align:center;font-family:'Rajdhani',sans-serif;-webkit-user-select:auto;user-select:auto;touch-action:auto}
+.mbtn{background:#fff;color:#000;border:none;border-radius:8px;padding:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.conf{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+.conf.show{display:flex}
+.conf p{color:#fff;font-size:22px;font-weight:700}
+.cbns{display:flex;gap:16px}
+.cyes{background:#e74c3c;color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:18px;font-weight:700;cursor:pointer}
+.cno{background:#555;color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:18px;font-weight:700;cursor:pointer}
+.pick-row{display:flex;gap:10px;justify-content:center;align-items:center}
+.pick-col{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pick-lbl{color:#888;font-size:12px;letter-spacing:1px}
+.pick-select{width:82px;height:120px;background:#111;color:#fff;border:1px solid #444;border-radius:10px;font-size:26px;font-family:'Orbitron',monospace;text-align:center;-webkit-user-select:auto;user-select:auto;touch-action:auto}
+.pick-select.small{width:70px}
+#camM{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:400;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#camM.show{display:flex}
+#camPreview{width:88vw;max-width:440px;border-radius:14px;border:2px solid #0055cc;object-fit:cover;max-height:50vh}
+#camCanvas{display:none}
+.cam-lbl{color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.cam-winner-row{display:flex;align-items:center;gap:10px;width:88vw;max-width:440px}
+.cam-winner-row input{background:#222;border:1px solid #444;border-radius:8px;color:#fff;font-size:16px;padding:10px 14px;flex:1;font-family:'Rajdhani',sans-serif;-webkit-user-select:auto;user-select:auto;touch-action:auto}
+.cam-winner-row label{color:#888;font-size:12px;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.cam-btns{display:flex;gap:14px;align-items:center}
+.cam-shoot{background:linear-gradient(135deg,#0055cc,#00aaff);color:#fff;border:none;border-radius:50%;width:66px;height:66px;font-size:26px;cursor:pointer}
+.cam-shoot:active{transform:scale(.9)}
+.cam-cancel{background:#333;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;border-top:1px solid #444;padding:12px 16px;z-index:9999;align-items:center;gap:10px}
+#pwa-banner.show{display:flex}
+#pwa-banner span{color:#fff;font-size:13px;flex:1;line-height:1.4}
+#pwa-install-btn{background:#ffcc00;color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+#pwa-close-btn{background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:0 4px}
+</style>
+</head>
+<body>
+<div id="pwa-banner">
+  <span>🏀 Add to Home Screen for the best experience!</span>
+  <button id="pwa-install-btn">Install</button>
+  <button id="pwa-close-btn">✕</button>
+</div>
+
+<div class="board">
+  <div class="top-bar">
+    <div class="shot-top" id="shotTop" onclick="handleShotTap()">24.0</div>
+    <div class="top-center">
+      <button class="play-btn" id="playBtn" onclick="toggleMainClock()">▶️</button>
+      <div class="main-clk" id="mainClk" onclick="handleMainClockTap()">10:00</div>
+      <div class="qtr-lbl" id="qtrLbl" onclick="handleQuarterTap()">1st</div>
+    </div>
+    <div class="top-right">
+      <button class="cam-ico" onclick="openCamera()" title="Winner Photo">📷</button>
+      <button class="clear-ico" id="clearBtn" onclick="clearWinnerPhoto()" title="Clear Photo">🗑️</button>
+      <button class="ico" style="background:#ffcc00" id="editToggleBtn" onclick="toggleQuickEdit()">✏️</button>
+      <button class="bravo-ico" onclick="sendBravo()">🎉</button>
+      <button class="ico" onclick="showOpts()">⋯</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="lcol">
+      <div class="sbtngrp">
+        <button class="sbtn" onclick="addScore(1,1)">+1</button>
+        <button class="sbtn" onclick="addScore(1,2)">+2</button>
+        <button class="sbtn" onclick="addScore(1,3)">+3</button>
+      </div>
+      <div class="shot-reset-row">
+        <button class="sreset" onclick="setShotClock(14)">14</button>
+        <button class="sreset" onclick="setShotClock(24)">24</button>
+      </div>
+    </div>
+
+    <div class="center-area">
+      <div class="teams-row">
+        <div class="tblk">
+          <button class="tname" id="t1name" onclick="handleTeamTap(1)">Team 1</button>
+          <div class="dscore" id="sc1" onclick="handleScoreTap(1)">0</div>
+        </div>
+        <svg width="40" height="50" viewBox="0 0 40 50" fill="none">
+          <line x1="3" y1="3" x2="37" y2="47" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="37" y1="3" x2="3"  y2="47" stroke="white" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+        <div class="tblk">
+          <button class="tname" id="t2name" onclick="handleTeamTap(2)">Team 2</button>
+          <div class="dscore" id="sc2" onclick="handleScoreTap(2)">0</div>
+        </div>
+      </div>
+      <div class="fouls-row">
+        <button class="dotgrp" onclick="cycleDot(1)">
+          <div class="dot" id="d1a"></div><div class="dot" id="d1b"></div>
+          <div class="dot" id="d1c"></div><div class="dot" id="d1d"></div>
+        </button>
+        <div class="fouls-center">
+          <div class="fouls-lbl-row">
+            <button class="farrow" id="arrowL" onclick="toggleFoulArrow(1)"><span class="al"></span></button>
+            <span class="flbl">Fouls</span>
+            <button class="farrow" id="arrowR" onclick="toggleFoulArrow(2)"><span class="ar"></span></button>
+          </div>
+          <div class="fnums">
+            <span class="fnum" id="fn1">0</span>
+            <span class="fnum" id="fn2">0</span>
+          </div>
+        </div>
+        <button class="dotgrp" onclick="cycleDot(2)">
+          <div class="dot" id="d2a"></div><div class="dot" id="d2b"></div>
+          <div class="dot" id="d2c"></div><div class="dot" id="d2d"></div>
+        </button>
+      </div>
+      <div class="shot-row">
+        <div class="shot-digs">
+          <button class="fplus" onclick="handleFoulTap(1)">+1</button>
+          <div class="sd t1" id="fd1" onclick="handleFoulTap(1)">0</div>
+          <div class="ssep">x</div>
+          <div class="sd t2" id="fd2" onclick="handleFoulTap(2)">0</div>
+          <button class="fplus" onclick="handleFoulTap(2)">+1</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rcol">
+      <div class="sbtngrp">
+        <button class="sbtn" onclick="addScore(2,1)">+1</button>
+        <button class="sbtn" onclick="addScore(2,2)">+2</button>
+        <button class="sbtn" onclick="addScore(2,3)">+3</button>
+      </div>
+      <div class="rib">
+        <button class="ico" onclick="setShotClock(24)">🔔</button>
+        <button class="ico" onclick="undoScore()">↩</button>
+      </div>
+    </div>
+  </div>
+  <div class="bbar"><div class="div"></div></div>
+  <!-- ── Music Bar ── -->
+  <div class="music-bar">
+    <div class="mtrack" id="mtrack1" onclick="playTrack('oPV4hTdpuB4','NBA Sound',1)">
+      <span class="mico">🎵</span><span class="mlbl">NBA Sound</span>
+    </div>
+    <div class="mtrack" id="mtrack2" onclick="playTrack('RFZ8j9ox7QA','Milwaukee Bucks',2)">
+      <span class="mico">🎵</span><span class="mlbl">Milwaukee Bucks</span>
+    </div>
+    <div class="mtrack" id="mtrack3" onclick="playTrack('M_av9u4Bf0w','NBA Arena',3)">
+      <span class="mico">🎵</span><span class="mlbl">NBA Arena</span>
+    </div>
+    <div class="mstop" onclick="stopMusic()">⏹ Stop</div>
+  </div>
+</div>
+
+<!-- Modals (same as original) -->
+<div class="mover" id="scoreM">
+  <div class="mbox">
+    <h3 id="scoreMtitle">Edit Score</h3>
+    <div class="pick-row">
+      <div class="pick-col"><div class="pick-lbl">SCORE</div><select id="scoreSel" class="pick-select" size="4"></select></div>
+    </div>
+    <button class="mbtn" onclick="saveScore()">Save</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeScoreM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="foulM">
+  <div class="mbox">
+    <h3 id="foulMtitle">Edit Fouls</h3>
+    <div class="pick-row">
+      <div class="pick-col"><div class="pick-lbl">FOULS</div><select id="foulSel" class="pick-select" size="4"></select></div>
+    </div>
+    <button class="mbtn" onclick="saveFoul()">Save</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeFoulM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="teamM">
+  <div class="mbox">
+    <h3 id="teamMtitle">Edit Name</h3>
+    <input class="minput" type="text" id="teamMinput">
+    <button class="mbtn" onclick="saveTeamName()">Save</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeTeamM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="timeM">
+  <div class="mbox">
+    <h3>Edit Main Clock</h3>
+    <div class="pick-row">
+      <div class="pick-col"><div class="pick-lbl">MIN</div><select id="timeMin" class="pick-select" size="4"></select></div>
+      <div class="pick-col"><div class="pick-lbl">SEC</div><select id="timeSec" class="pick-select" size="4"></select></div>
+    </div>
+    <button class="mbtn" onclick="saveMainTime()">Save</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeTimeM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="shotM">
+  <div class="mbox">
+    <h3>Edit Shot Clock</h3>
+    <div class="pick-row">
+      <div class="pick-col"><div class="pick-lbl">SEC</div><select id="shotSecSel" class="pick-select" size="4"></select></div>
+      <div class="pick-col"><div class="pick-lbl">DEC</div><select id="shotDecSel" class="pick-select small" size="4"></select></div>
+    </div>
+    <button class="mbtn" onclick="saveShotClock()">Save</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeShotM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="qtrM">
+  <div class="mbox">
+    <h3>Select Quarter</h3>
+    <button class="mbtn" onclick="setQuarterDirect(1)">1st</button>
+    <button class="mbtn" onclick="setQuarterDirect(2)">2nd</button>
+    <button class="mbtn" onclick="setQuarterDirect(3)">3rd</button>
+    <button class="mbtn" onclick="setQuarterDirect(4)">4th</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeQtrM()">Cancel</button>
+  </div>
+</div>
+<div class="mover" id="optsM">
+  <div class="mbox">
+    <h3>Options</h3>
+    <button class="mbtn" onclick="resetQtrTimer();closeOpts()">Reset Timer</button>
+    <button class="mbtn" style="background:#e74c3c;color:#fff" onclick="closeOpts();confirmReset()">Reset Match</button>
+    <button class="mbtn" style="background:#333;color:#fff" onclick="closeOpts()">Close</button>
+  </div>
+</div>
+<div class="conf" id="confM">
+  <p>Reset the whole match?</p>
+  <div class="cbns">
+    <button class="cyes" onclick="doReset()">Yes, Reset</button>
+    <button class="cno" onclick="document.getElementById('confM').classList.remove('show')">Cancel</button>
+  </div>
+</div>
+<div id="camM">
+  <div class="cam-lbl">📷 Winner Photo</div>
+  <video id="camPreview" autoplay playsinline muted></video>
+  <canvas id="camCanvas"></canvas>
+  <div class="cam-winner-row">
+    <label>Winner:</label>
+    <input type="text" id="camWinnerName" placeholder="Team name">
+  </div>
+  <div class="cam-btns">
+    <button class="cam-shoot" onclick="shootPhoto()">📸</button>
+    <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+document.addEventListener('touchmove',e=>{if(e.scale!==1)e.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('dblclick',e=>e.preventDefault());
+let _lt=0;
+document.addEventListener('touchend',e=>{const n=Date.now();if(n-_lt<=300)e.preventDefault();_lt=n;},false);
+document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
+
+firebase.initializeApp({
+  apiKey:"AIzaSyDr78eta_v2AOxrll2mTX8noI805qPtifA",
+  authDomain:"ok-new-7c868.firebaseapp.com",
+  databaseURL:"https://ok-new-7c868-default-rtdb.firebaseio.com",
+  projectId:"ok-new-7c868",
+  storageBucket:"ok-new-7c868.firebasestorage.app",
+  messagingSenderId:"760753992927",
+  appId:"1:760753992927:web:8702569c9c7c45be7fe56a"
+});
+const db=firebase.database();
+const REF=db.ref('live');
+const QN=['1st','2nd','3rd','4th'];
+const QD=600;
+
+// ══════════════════════════════════════════════════════
+//  SERVER TIME OFFSET
+//  بنعرف الفرق بين وقت الجهاز ووقت Firebase Server
+// ══════════════════════════════════════════════════════
+let serverOffset=0;
+db.ref('/.info/serverTimeOffset').on('value',s=>{serverOffset=s.val()||0;});
+function serverNow(){return Date.now()+serverOffset;}
+
+function ld(){try{return JSON.parse(localStorage.getItem('bb')||'{}')}catch(e){return{}}}
+const S=ld();
+let sc1=S.sc1??0,sc2=S.sc2??0,f1=S.f1??0,f2=S.f2??0,dt1=S.dt1??0,dt2=S.dt2??0;
+let qtr=S.qtr??1,tn1=S.tn1??'Team 1',tn2=S.tn2??'Team 2';
+let mainSec=S.mainSec??QD,shot=S.shot??24,shotMs=S.shotMs??0;
+let prev1=sc1,prev2=sc2,editingT=0;
+let mainRunning=false,shotRunning=false,mainTick=null,shotTick=null,mainLast=0,shotLast=0;
+let quickEdit=false;
+let foulArrow=S.foulArrow??0; // 0=none, 1=team1, 2=team2
+
+// ══════════════════════════════════════════════════════
+//  هذان المتغيران هما قلب الحل:
+//  بنحفظ وقت البداية + المدة، مش بنبعت الوقت كل ثانية
+// ══════════════════════════════════════════════════════
+let _mainStartServerTime=null;   // serverNow() وقت ما الساعة بدأت
+let _mainStartDuration=0;        // mainSec وقت ما الساعة بدأت (بالثواني)
+let _shotStartServerTime=null;   // نفس الفكرة لـ shot clock
+let _shotStartDurationMs=0;      // بالميلي ثانية
+
+function save(){
+  try{localStorage.setItem('bb',JSON.stringify({sc1,sc2,f1,f2,dt1,dt2,qtr,tn1,tn2,mainSec,shot,shotMs,foulArrow}))}catch(e){}
+}
+
+let fbThrottle=null;
+function push(immediate){
+  if(immediate){_doPush();}
+  else{
+    if(fbThrottle)return;
+    fbThrottle=setTimeout(()=>{fbThrottle=null;_doPush();},200);
+  }
+}
+
+function _doPush(){
+  const data={
+    sc1,sc2,f1,f2,qtr,tn1,tn2,
+    mainSec,shot,shotMs,
+    mainRunning,shotRunning,
+    foulArrow,
+    ts:Date.now()
+  };
+
+  // ── الجزء المهم: لو الساعة شغالة نبعت وقت البداية والمدة ──
+  if(mainRunning && _mainStartServerTime){
+    data.serverStartTime  = _mainStartServerTime;
+    data.mainDuration     = _mainStartDuration;
+  } else {
+    data.serverStartTime  = null;
+    data.mainDuration     = null;
+  }
+
+  if(shotRunning && _shotStartServerTime){
+    data.serverShotStartTime = _shotStartServerTime;
+    data.shotDurationMs      = _shotStartDurationMs;
+  } else {
+    data.serverShotStartTime = null;
+    data.shotDurationMs      = null;
+  }
+
+  try{REF.set(data);}catch(e){}
+}
+
+function renderAll(){
+  document.getElementById('sc1').textContent=sc1;
+  document.getElementById('sc2').textContent=sc2;
+  document.getElementById('t1name').textContent=tn1;
+  document.getElementById('t2name').textContent=tn2;
+  document.getElementById('qtrLbl').textContent=QN[(qtr-1)%4];
+  document.getElementById('fn1').textContent=f1;
+  document.getElementById('fn2').textContent=f2;
+  document.getElementById('fd1').textContent=f1;
+  document.getElementById('fd2').textContent=f2;
+  ['a','b','c','d'].forEach((l,i)=>{
+    document.getElementById('d1'+l).classList.toggle('on',i<dt1);
+    document.getElementById('d2'+l).classList.toggle('on',i<dt2);
+  });
+  document.getElementById('arrowL').classList.toggle('active', foulArrow===1);
+  document.getElementById('arrowR').classList.toggle('active', foulArrow===2);
+  rMain();rShot();refreshQuickEditUI();
+}
+function rMain(){
+  const m=Math.floor(mainSec/60),s=mainSec%60;
+  document.getElementById('mainClk').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function rShot(){
+  const el=document.getElementById('shotTop');
+  const d=Math.floor(shotMs/100);
+  el.textContent=String(shot).padStart(2,'0')+'.'+d;
+  el.className='shot-top'+(shotRunning&&shot>=5?' run':shotRunning&&shot<5?' danger':'')+(quickEdit?' editable':'');
+}
+
+function toggleMainClock(){
+  if(mainRunning)stopAll();else startAll();
+}
+function startAll(){startMain();startShot();document.getElementById('playBtn').textContent='⏸';}
+function stopAll(){stopMain();stopShot();document.getElementById('playBtn').textContent='▶️';push(true);}
+
+function startMain(){
+  if(mainRunning)return;
+  mainRunning=true;
+  mainLast=Date.now();
+
+  // ── حفظ وقت البداية ──
+  _mainStartServerTime = serverNow();
+  _mainStartDuration   = mainSec;
+
+  // بعت وقت البداية فوراً لـ Firebase
+  push(true);
+
+  mainTick=setInterval(()=>{
+    const now=Date.now();
+    mainSec=Math.max(0,mainSec-Math.round((now-mainLast)/1000));
+    mainLast=now;
+    rMain();
+    // لا نبعتش Firebase كل ثانية — شاشة العرض بتحسب من serverStartTime
+    if(mainSec<=0){stopAll();save();}
+  },1000);
+}
+
+function stopMain(){
+  if(!mainRunning && mainTick===null)return;
+  mainRunning=false;
+  clearInterval(mainTick);
+  mainTick=null;
+  _mainStartServerTime=null;
+  _mainStartDuration=0;
+  save();
+}
+
+function resetQtrTimer(){
+  stopAll();
+  mainSec=QD;shot=24;shotMs=0;
+  _mainStartServerTime=null;_shotStartServerTime=null;
+  renderAll();save();push(true);
+}
+
+function toggleShotClock(){
+  if(shotRunning)stopShot();else startShot();
+  push(true);
+}
+
+function startShot(){
+  if(shotRunning)return;
+  if(shot<=0&&shotMs<=0)return;
+  shotRunning=true;
+  shotLast=Date.now();
+
+  // ── حفظ وقت بداية الـ shot clock ──
+  _shotStartServerTime  = serverNow();
+  _shotStartDurationMs  = shot*1000+shotMs;
+
+  push(true);
+  rShot();
+
+  shotTick=setInterval(()=>{
+    const now=Date.now();
+    let total=shot*1000+shotMs-(now-shotLast);
+    shotLast=now;
+    if(total<=0){total=0;shot=0;shotMs=0;rShot();playBuzzer();stopShot();push(true);return;}
+    shot=Math.floor(total/1000);
+    shotMs=total%1000;
+    rShot();
+    // لا نبعتش Firebase كل 100ms — شاشة العرض بتحسب من serverShotStartTime
+  },100);
+}
+
+function stopShot(){
+  if(!shotRunning && shotTick===null)return;
+  shotRunning=false;
+  clearInterval(shotTick);
+  shotTick=null;
+  _shotStartServerTime=null;
+  _shotStartDurationMs=0;
+  rShot();
+  save();
+}
+
+function setShotClock(val){
+  stopShot();
+  shot=val;shotMs=0;
+  rShot();save();push(true);
+}
+
+function nextQtr(){if(qtr<4)qtr++;resetQtrTimer();renderAll();push(true);}
+function prevQtr(){if(qtr>1)qtr--;resetQtrTimer();renderAll();push(true);}
+
+function addScore(t,pts){
+  if(t===1){prev1=sc1;sc1+=pts;}else{prev2=sc2;sc2+=pts;}
+  renderAll();save();push(true);
+}
+function undoScore(){sc1=prev1;sc2=prev2;renderAll();save();push(true);}
+// السهم مؤشر حيازة الفاول — ضغطة يضيء، ضغطة تانية يتطفا
+function toggleFoulArrow(t){
+  foulArrow = foulArrow===t ? 0 : t;
+  renderAll();save();push(true);
+}
+// تعديل الفاول بزر التعديل فقط
+function handleFoulTap(t){
+  if(quickEdit){ editFoul(t); return; }
+  // ضغطة عادية = +1 فاول
+  if(t===1) f1++; else f2++;
+  renderAll(); save(); push(true);
+}
+let editingFoul=0;
+function editFoul(t){
+  editingFoul=t;
+  document.getElementById('foulMtitle').textContent='Edit '+(t===1?tn1:tn2)+' Fouls';
+  fillSelect(document.getElementById('foulSel'),0,200,false);
+  document.getElementById('foulSel').value=t===1?f1:f2;
+  document.getElementById('foulM').classList.add('show');
+}
+function saveFoul(){
+  const v=parseInt(document.getElementById('foulSel').value||0,10);
+  if(!isNaN(v)&&v>=0){if(editingFoul===1)f1=v;else f2=v;}
+  closeFoulM();renderAll();save();push(true);
+}
+function closeFoulM(){document.getElementById('foulM').classList.remove('show');}
+function cycleDot(t){
+  if(t===1)dt1=dt1>=4?0:dt1+1;else dt2=dt2>=4?0:dt2+1;
+  renderAll();save();
+}
+function confirmReset(){document.getElementById('confM').classList.add('show');}
+function doReset(){
+  document.getElementById('confM').classList.remove('show');
+  sc1=sc2=f1=f2=dt1=dt2=0;prev1=prev2=0;qtr=1;foulArrow=0;
+  stopAll();mainSec=QD;shot=24;shotMs=0;
+  renderAll();save();push(true);
+}
+
+function toggleQuickEdit(){quickEdit=!quickEdit;refreshQuickEditUI();}
+function refreshQuickEditUI(){
+  document.getElementById('mainClk').classList.toggle('editable',quickEdit);
+  document.getElementById('qtrLbl').classList.toggle('editable',quickEdit);
+  document.getElementById('t1name').classList.toggle('editable',quickEdit);
+  document.getElementById('t2name').classList.toggle('editable',quickEdit);
+  document.getElementById('shotTop').classList.toggle('editable',quickEdit);
+  document.getElementById('sc1').classList.toggle('editable',quickEdit);
+  document.getElementById('sc2').classList.toggle('editable',quickEdit);
+  document.getElementById('fd1').classList.toggle('editable',quickEdit);
+  document.getElementById('fd2').classList.toggle('editable',quickEdit);
+  document.getElementById('editToggleBtn').classList.toggle('edit-active',quickEdit);
+}
+function handleMainClockTap(){if(!quickEdit)return;openTimeM();}
+function handleShotTap(){if(quickEdit){openShotM();return;}toggleShotClock();}
+function handleQuarterTap(){if(!quickEdit)return;openQtrM();}
+function handleScoreTap(t){if(!quickEdit)return;editScore(t);}
+let editingScore=0;
+function editScore(t){
+  editingScore=t;
+  document.getElementById('scoreMtitle').textContent='Edit '+(t===1?tn1:tn2)+' Score';
+  const val=t===1?sc1:sc2;
+  fillSelect(document.getElementById('scoreSel'),0,500,false);
+  document.getElementById('scoreSel').value=val;
+  document.getElementById('scoreM').classList.add('show');
+}
+function saveScore(){
+  const v=parseInt(document.getElementById('scoreSel').value||0,10);
+  if(editingScore===1){prev1=sc1;sc1=v;}else{prev2=sc2;sc2=v;}
+  closeScoreM();renderAll();save();push(true);
+}
+function closeScoreM(){document.getElementById('scoreM').classList.remove('show');}
+
+function handleTeamTap(t){if(!quickEdit)return;editTeam(t);}
+
+function editTeam(t){
+  editingT=t;
+  document.getElementById('teamMtitle').textContent='Edit '+(t===1?tn1:tn2);
+  document.getElementById('teamMinput').value=t===1?tn1:tn2;
+  document.getElementById('teamM').classList.add('show');
+  setTimeout(()=>document.getElementById('teamMinput').focus(),100);
+}
+function saveTeamName(){
+  const v=document.getElementById('teamMinput').value.trim();
+  if(v){if(editingT===1)tn1=v;else tn2=v;}
+  closeTeamM();renderAll();save();push(true);
+}
+function closeTeamM(){document.getElementById('teamM').classList.remove('show');}
+
+function fillSelect(sel,start,end,pad=true){
+  sel.innerHTML='';
+  for(let i=start;i<=end;i++){
+    const o=document.createElement('option');
+    o.value=i;o.textContent=pad?String(i).padStart(2,'0'):String(i);
+    sel.appendChild(o);
+  }
+}
+function openTimeM(){
+  stopMain();document.getElementById('playBtn').textContent='▶️';
+  fillSelect(document.getElementById('timeMin'),0,59);
+  fillSelect(document.getElementById('timeSec'),0,59);
+  document.getElementById('timeMin').value=Math.floor(mainSec/60);
+  document.getElementById('timeSec').value=mainSec%60;
+  document.getElementById('timeM').classList.add('show');
+}
+function closeTimeM(){document.getElementById('timeM').classList.remove('show');}
+function saveMainTime(){
+  const m=parseInt(document.getElementById('timeMin').value||0,10);
+  const s=parseInt(document.getElementById('timeSec').value||0,10);
+  mainSec=m*60+s;
+  closeTimeM();renderAll();save();push(true);
+}
+function openShotM(){
+  stopShot();
+  fillSelect(document.getElementById('shotSecSel'),0,60);
+  fillSelect(document.getElementById('shotDecSel'),0,9,false);
+  document.getElementById('shotSecSel').value=shot;
+  document.getElementById('shotDecSel').value=Math.floor(shotMs/100);
+  document.getElementById('shotM').classList.add('show');
+}
+function closeShotM(){document.getElementById('shotM').classList.remove('show');}
+function saveShotClock(){
+  shot=Math.max(0,Math.min(60,parseInt(document.getElementById('shotSecSel').value||0,10)));
+  shotMs=Math.max(0,Math.min(9,parseInt(document.getElementById('shotDecSel').value||0,10)))*100;
+  closeShotM();renderAll();save();push(true);
+}
+function openQtrM(){document.getElementById('qtrM').classList.add('show');}
+function closeQtrM(){document.getElementById('qtrM').classList.remove('show');}
+function setQuarterDirect(v){qtr=v;closeQtrM();renderAll();save();push(true);}
+function showOpts(){document.getElementById('optsM').classList.add('show');}
+function closeOpts(){document.getElementById('optsM').classList.remove('show');}
+function goFS(){
+  if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
+  else document.exitFullscreen&&document.exitFullscreen();
+}
+function sendBravo(){
+  db.ref('bravo').set({ts:Date.now(),active:true});
+  const b=document.querySelector('.bravo-ico');
+  b.style.transform='scale(1.3)';b.textContent='🎊';
+  setTimeout(()=>{b.style.transform='';b.textContent='🎉';db.ref('bravo').set({ts:Date.now(),active:false});},30000);
+}
+
+let camStream=null;
+async function openCamera(){
+  document.getElementById('camWinnerName').value=sc1>sc2?tn1:(sc2>sc1?tn2:'');
+  document.getElementById('camM').classList.add('show');
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    document.getElementById('camPreview').srcObject=camStream;
+  }catch(e){
+    closeCamera();
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+    inp.onchange=ev=>{
+      const f=ev.target.files[0];if(!f)return;
+      const r=new FileReader();r.onload=e2=>sendWinnerPhoto(e2.target.result);r.readAsDataURL(f);
+    };inp.click();
+  }
+}
+function closeCamera(){
+  document.getElementById('camM').classList.remove('show');
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  document.getElementById('camPreview').srcObject=null;
+}
+function shootPhoto(){
+  const video=document.getElementById('camPreview'),canvas=document.getElementById('camCanvas');
+  canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+  canvas.getContext('2d').drawImage(video,0,0);
+  sendWinnerPhoto(canvas.toDataURL('image/jpeg',0.75));
+  closeCamera();
+}
+function sendWinnerPhoto(dataURL){
+  const winner=document.getElementById('camWinnerName').value.trim()||'Winner';
+  db.ref('winner_photo').set({photo:dataURL,winner,sc1,sc2,tn1,tn2,ts:Date.now(),active:true});
+  document.getElementById('clearBtn').classList.add('visible');
+}
+function clearWinnerPhoto(){
+  db.ref('winner_photo').update({active:false,photo:''});
+  document.getElementById('clearBtn').classList.remove('visible');
+}
+db.ref('winner_photo').on('value',snap=>{
+  const d=snap.val();
+  document.getElementById('clearBtn').classList.toggle('visible',!!(d&&d.active&&d.photo));
+});
+
+// ══════════════════════════════════════════════════════
+//  VISIBILITY CHANGE — لما الموبايل يرجع من النوم
+//  بنصحح الوقت ونبعت Firebase بـ serverStartTime جديد
+// ══════════════════════════════════════════════════════
+let _hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){
+    _hiddenAt=Date.now();
+  } else {
+    if(_hiddenAt>0){
+      const gap=Date.now()-_hiddenAt;
+
+      if(mainRunning){
+        mainSec=Math.max(0,mainSec-Math.round(gap/1000));
+        mainLast=Date.now();
+        if(mainSec<=0){stopAll();save();}
+        else{
+          // أعد تسجيل serverStartTime من الوقت الحالي
+          _mainStartServerTime = serverNow();
+          _mainStartDuration   = mainSec;
+        }
+      }
+
+      if(shotRunning){
+        let total=shot*1000+shotMs-gap;
+        if(total<=0){total=0;shot=0;shotMs=0;stopShot();push(true);}
+        else{
+          shot=Math.floor(total/1000);shotMs=total%1000;
+          shotLast=Date.now();
+          _shotStartServerTime = serverNow();
+          _shotStartDurationMs = shot*1000+shotMs;
+        }
+      }
+
+      _hiddenAt=0;
+      renderAll();
+      push(true); // بعت Firebase بالقيم المحدّثة فوراً
+    }
+    wl();
+  }
+});
+
+async function wl(){
+  if('wakeLock' in navigator){try{await navigator.wakeLock.request('screen');}catch(e){}}
+}
+wl();
+
+if('serviceWorker' in navigator){
+  const swCode=`const CACHE='bb-v2';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll([self.location.pathname])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{if(e.request.url.includes('firebasejs')||e.request.url.includes('googleapis'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'})),{scope:'./'}).catch(()=>{});
+}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('pwa-banner').classList.add('show');
+});
+document.getElementById('pwa-install-btn').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();await deferredPrompt.userChoice;
+  deferredPrompt=null;document.getElementById('pwa-banner').classList.remove('show');
+});
+document.getElementById('pwa-close-btn').addEventListener('click',()=>{
+  document.getElementById('pwa-banner').classList.remove('show');
+});
+
+renderAll();
+
+// ── Music Controls ──
+let currentTrack = 0;
+function playTrack(ytId, name, num) {
+  currentTrack = num;
+  [1,2,3].forEach(i => document.getElementById('mtrack'+i).classList.toggle('playing', i===num));
+  db.ref('music').set({ytId, name, ts: Date.now(), active: true});
+}
+function stopMusic() {
+  currentTrack = 0;
+  [1,2,3].forEach(i => document.getElementById('mtrack'+i).classList.remove('playing'));
+  db.ref('music').set({ytId: '', ts: Date.now(), active: false});
+}
+
+// ── صفارة ملعب مركبة ──
+function playBuzzer(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const master=ctx.createGain();
+    master.gain.setValueAtTime(0,ctx.currentTime);
+    master.gain.linearRampToValueAtTime(1.2,ctx.currentTime+0.02);
+    master.gain.setValueAtTime(1.2,ctx.currentTime+0.7);
+    master.gain.linearRampToValueAtTime(0,ctx.currentTime+0.85);
+    master.connect(ctx.destination);
+
+    // طبقة 1: التون الرئيسي
+    const freqs=[440,880,1320];
+    freqs.forEach(f=>{
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      osc.type='sawtooth';
+      osc.frequency.value=f;
+      // vibrato سريع
+      const lfo=ctx.createOscillator();
+      const lfoG=ctx.createGain();
+      lfo.frequency.value=18;
+      lfoG.gain.value=f*0.04;
+      lfo.connect(lfoG);lfoG.connect(osc.frequency);
+      lfo.start(ctx.currentTime);lfo.stop(ctx.currentTime+0.9);
+      g.gain.value=f===440?0.5:f===880?0.35:0.2;
+      osc.connect(g);g.connect(master);
+      osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.9);
+    });
+
+    // طبقة 2: noise قصيرة في البداية (ضربة)
+    const bufSize=ctx.sampleRate*0.05;
+    const buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++) data[i]=(Math.random()*2-1);
+    const noise=ctx.createBufferSource();
+    noise.buffer=buf;
+    const noiseG=ctx.createGain();
+    noiseG.gain.setValueAtTime(0.8,ctx.currentTime);
+    noiseG.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.08);
+    noise.connect(noiseG);noiseG.connect(master);
+    noise.start(ctx.currentTime);
+
+    // طبقة 3: sub bass
+    const sub=ctx.createOscillator();
+    const subG=ctx.createGain();
+    sub.type='sine';
+    sub.frequency.value=110;
+    subG.gain.setValueAtTime(0.9,ctx.currentTime);
+    subG.gain.linearRampToValueAtTime(0,ctx.currentTime+0.4);
+    sub.connect(subG);subG.connect(master);
+    sub.start(ctx.currentTime);sub.stop(ctx.currentTime+0.45);
+
+  }catch(e){}
+}
+</script>
+</body>
+</html>
