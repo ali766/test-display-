@@ -57,8 +57,9 @@
   .team2 .score { color:#ff6848;
     text-shadow: 0 0 20px rgba(255,104,72,.55), 0 0 42px rgba(255,104,72,.18); }
   .bottom-row { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; margin-top:1vh; }
-  .fouls { font-size:4vw; font-weight:900; color:#bdbdbd;
+  .fouls { font-size:4vw; font-weight:900; color:#fff;
     text-transform:uppercase; padding:0 1.2vw; }
+  .fouls span { color:#ffd400; }
   .fouls.right { text-align:right; }
   .foul-arrow-wrap { display:flex; align-items:center; justify-content:center; gap:1.5vw; padding:0 1vw; }
   .farr { width:0; height:0; border-top:3vw solid transparent; border-bottom:3vw solid transparent; opacity:0; transition:opacity .3s, filter .3s; }
@@ -77,20 +78,19 @@
 
   /* ══ BRAVO OVERLAY ══════════════════════════════════ */
   #bravo-overlay { display:none; position:fixed; inset:0; z-index:5000;
-    align-items:center; justify-content:center; overflow:hidden; }
+    align-items:center; justify-content:center; overflow:hidden;
+    background: transparent; }
   #bravo-overlay.show { display:flex; }
 
-  #bravo-bg { position:absolute; inset:0; background:#000; }
-
   #bravo-strobe { position:absolute; inset:0;
-    animation: strobeAnim .3s steps(1) infinite; }
+    animation: strobeAnim .3s steps(1) infinite; pointer-events:none; }
   @keyframes strobeAnim {
-    0%  { background:#ff000044; }
-    17% { background:#ff880044; }
-    34% { background:#ffff0044; }
-    51% { background:#00ff8844; }
-    68% { background:#0088ff44; }
-    85% { background:#aa00ff44; }
+    0%  { background:#ff000033; }
+    17% { background:#ff880033; }
+    34% { background:#ffff0033; }
+    51% { background:#00ff8833; }
+    68% { background:#0088ff33; }
+    85% { background:#aa00ff33; }
   }
 
   #bravo-content { position:relative; z-index:2; text-align:center; width:100%; }
@@ -176,7 +176,6 @@
 </div>
 
 <div id="bravo-overlay">
-  <div id="bravo-bg"></div>
   <div id="bravo-strobe"></div>
   <div id="bravo-content">
     <div id="bravo-word">BRAVO!</div>
@@ -186,7 +185,7 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyDummyKey",
+  apiKey: "AIzaSyDr78eta_v2AOxrll2mTX8noI805qPtifA",
   authDomain: "ok-new-7c868.firebaseapp.com",
   databaseURL: "https://ok-new-7c868-default-rtdb.firebaseio.com",
   projectId: "ok-new-7c868",
@@ -344,7 +343,7 @@ if (db) {
       bravoAudio.currentTime = 0;
       ov.querySelectorAll('.bstar').forEach(s => s.remove());
       bravoBusy = false;
-    }, 30000);
+    }, 5000);
   });
 }
 
