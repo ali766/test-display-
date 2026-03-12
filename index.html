@@ -79,7 +79,7 @@
   /* ══ BRAVO OVERLAY ══════════════════════════════════ */
   #bravo-overlay { display:none; position:fixed; inset:0; z-index:5000;
     align-items:center; justify-content:center; overflow:hidden;
-    background: transparent; }
+    background: rgba(0,0,0,0.15); }
   #bravo-overlay.show { display:flex; }
 
   #bravo-strobe { position:absolute; inset:0;
@@ -96,7 +96,7 @@
   #bravo-content { position:relative; z-index:2; text-align:center; width:100%; }
 
   #bravo-word {
-    font-size:28vw; font-weight:900; line-height:.9;
+    font-size:20vw; font-weight:900; line-height:.9;
     background: linear-gradient(90deg,#ff0000,#ff8800,#ffee00,#00ff55,#00cfff,#aa00ff,#ff00bb,#ff0000);
     background-size:300% 100%;
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
